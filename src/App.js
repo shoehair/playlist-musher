@@ -22,16 +22,22 @@ class App extends Component {
       is_playing: "Paused",
       progress_ms: 0,
       no_data: false,
+      my_data_collected: false,
+      friend_data_collected: false,
+      playlists_combined: false,
+      friendssongs: new Set(),
+      mysongs: new Set()
     };
 
     //this.getCurrentlyPlaying = this.getCurrentlyPlaying.bind(this);
-    this.getAllSongs = this.getAllSongs.bind(this);
-    this.getUsersSongs = this.getUsersSongs.bind(this);
-    this.getAllSongsFromPlaylists = this.getAllSongsFromPlaylists.bind(this);
-    this.getAllSongsFromUsersPlaylists = this.getAllSongsFromUsersPlaylists.bind(this);
+    this.getAllMySongs = this.getAllMySongs.bind(this);
+    this.getFriendsSongs = this.getFriendsSongs.bind(this);
+    this.getAllSongsFromMyPlaylists = this.getAllSongsFromMyPlaylists.bind(this);
+    this.getAllSongsFromFriendsPlaylists = this.getAllSongsFromFriendsPlaylists.bind(this);
     this.combinePlaylists = this.combinePlaylists.bind(this);
+    this.startSequence = this.startSequence.bind(this);
     //this.testPlaylist = this.testPlaylist.bind(this);
-    //this.tick = this.tick.bind(this);
+    this.tick = this.tick.bind(this);
   }
 
 
@@ -45,12 +51,11 @@ class App extends Component {
       this.setState({
         token: _token
       });
-      //this.getUsersSongs(_token, "mic_hell_e");
-      this.getAllSongs(_token);
-      //this.combinePlaylists(_token);
+      //this.getAllMySongs(_token);
       console.log("mounted");
-      //this.testPlaylist(_token);
     }
+
+    this.getAllMySongs(this.state.token);
 
     // set interval for polling every 5 seconds
     this.interval = setInterval(() => this.tick(), 5000);
@@ -71,7 +76,7 @@ class App extends Component {
   
     
     
-  getUsersSongs(token, userid) {
+  getFriendsSongs(token, userid) {
     $.ajax({
       url: "https://api.spotify.com/v1/users/" + userid + "/playlists",
       type: "GET",
@@ -93,23 +98,22 @@ class App extends Component {
         }
 
         this.setState({
-          user2playlists: playlists,
-          user2songs:new Set(),
-          no_data: false /* We need to "reset" the boolean, in case the
-                            user does not give F5 and has opened his Spotify. */
+          friendsplaylists: playlists,
+          //friendssongs:new Set()
                         
         });
-        this.getAllSongsFromUsersPlaylists(token);
+        this.getAllSongsFromFriendsPlaylists(token);
         
       }
     });
   }
 
-  getAllSongsFromUsersPlaylists(token) {
+  getAllSongsFromFriendsPlaylists(token) {
 
     for (let i = 0; i < this.state.user2playlists.length; i++) {
       //console.log(id);
-         $.ajax({
+          if (i === this.state.user2playlists.length - 1) {
+            $.ajax({
            url: "https://api.spotify.com/v1/playlists/"+this.state.user2playlists[i]+"/tracks",
            async: true,
            type: "GET",
@@ -127,17 +131,47 @@ class App extends Component {
                });
                return;
              }
-             var songs = this.state.user2songs;
              for (var i = 0; i < data.items.length; i++) {
-               songs.add(data.items[i].track.name);
+               //change to a setState function
+              this.state.friendssongs.add(data.items[i].track.name);
              }
             
      
            }
-         });
+         }).then(this.setState({friend_data_collected:true}));
+          }
+          else {
+            $.ajax({
+           url: "https://api.spotify.com/v1/playlists/"+this.state.friendsplaylists[i]+"/tracks",
+           async: true,
+           type: "GET",
+           beforeSend: xhr => {
+             xhr.setRequestHeader("Authorization", "Bearer " + token);
+           },
+           error: error => {
+             console.log(error);
+           },
+           success: data => {
+             // Checks if the data is not empty
+             if(!data) {
+               this.setState({
+                 friend_data_collected: false,
+               });
+               return;
+             }
+             for (var i = 0; i < data.items.length; i++) {
+               //change to a setstate function
+                this.state.friendssongs.add(data.items[i].track.name);
+             }
+            
+     
+           }
+          });
+          }
+         
        }
        console.log("here");
-       console.log("user2", this.state);
+       console.log("friend", this.state);
        this.combinePlaylists();
        //console.log("user2", this.state);
        //var intersection = this.state.songs.filter(x => this.state.user2songs.has(x));
@@ -152,9 +186,8 @@ class App extends Component {
   
   
 
-
-
-  getAllSongs(token) {
+  getAllMySongs(token) {
+    console.log("here1");
     // Make a call using the token
     $.ajax({
       url: "https://api.spotify.com/v1/me/playlists",
@@ -176,22 +209,52 @@ class App extends Component {
         }
 
         this.setState({
-          playlists: playlists,
-          songs:new Set(),
+          myplaylists: playlists,
+          //mysongs:new Set(),
           no_data: false /* We need to "reset" the boolean, in case the
                             user does not give F5 and has opened his Spotify. */
                         
         });
 
-        this.getAllSongsFromPlaylists(token);
+        this.getAllSongsFromMyPlaylists(token);
       }
     });
   
   }
 
-  getAllSongsFromPlaylists(token) {
+  getAllSongsFromMyPlaylists(token) {
+    console.log("here2");
     for (let i = 0; i < this.state.playlists.length; i++) {
    //console.log(id);
+   if (i === this.state.playlists.length - 1) {
+    $.ajax({
+        url: "https://api.spotify.com/v1/playlists/"+this.state.playlists[i]+"/tracks",
+        async: true,
+        type: "GET",
+        beforeSend: xhr => {
+          xhr.setRequestHeader("Authorization", "Bearer " + token);
+        },
+        error: error => {
+          console.log(error);
+        },
+        success: data => {
+          // Checks if the data is not empty
+          if(!data) {
+            this.setState({
+              no_data: true,
+            });
+            return;
+          }
+          for (var i = 0; i < data.items.length; i++) {
+            //change to a setstate function
+            this.state.mysongs.add(data.items[i].track.name);
+          }
+        
+  
+        }
+      }).then(this.setState({my_data_collected: true}));
+   }
+   else {
       $.ajax({
         url: "https://api.spotify.com/v1/playlists/"+this.state.playlists[i]+"/tracks",
         async: true,
@@ -210,16 +273,17 @@ class App extends Component {
             });
             return;
           }
-          var songs = this.state.songs;
           for (var i = 0; i < data.items.length; i++) {
-            songs.add(data.items[i].track.name);
+            //change to a setstate function
+            this.state.mysongs.add(data.items[i].track.name);
           }
         
   
         }
       });
+      }
     }
-    this.getUsersSongs(token, "mic_hell_e");
+    this.getFriendsSongs(token, "mic_hell_e");
 
 
   }
@@ -258,12 +322,13 @@ class App extends Component {
 
   
   combinePlaylists() {
-    this.setState({poop: "poop"});
     var intersection = new Set();
     var i = 0;
-    for (var x of this.state.user2songs) {
+    console.log(this.state.mysongs)
+    
+    for (var x of this.state.friendssongs) {
       i++;
-      if (this.state.songs.has(x)) {
+      if (this.state.mysongs.has(x)) {
         intersection.add(x);
       }
     }
@@ -279,6 +344,11 @@ class App extends Component {
     //var intersection = this.state.songs.filter(x => this.state.user2songs.has(x));
     //(x => this.state.allsongs[1].has(x));
 
+  }
+
+  startSequence() {
+    console.log("hi");
+    this.getAllMySongs(this.state.token);
   }
 
 
@@ -302,6 +372,11 @@ class App extends Component {
               Login to Spotify
             </a>
           )}
+
+          <button onClick={this.startSequence}>
+            Activate Lasers
+          </button>
+
 
          
           
