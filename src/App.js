@@ -22,14 +22,19 @@ class App extends Component {
       is_playing: "Paused",
       progress_ms: 0,
       no_data: false,
+      friendssongs: new Set(),
+      mysongs: new Set(),
+      friend: ""
     };
 
     //this.getCurrentlyPlaying = this.getCurrentlyPlaying.bind(this);
-    this.getAllSongs = this.getAllSongs.bind(this);
-    this.getUsersSongs = this.getUsersSongs.bind(this);
-    this.getAllSongsFromPlaylists = this.getAllSongsFromPlaylists.bind(this);
-    this.getAllSongsFromUsersPlaylists = this.getAllSongsFromUsersPlaylists.bind(this);
+    this.getmysongs = this.getmysongs.bind(this);
+    this.getFriendsSongs = this.getFriendsSongs.bind(this);
+    this.getMySongsFromPlaylists = this.getMySongsFromPlaylists.bind(this);
+    this.getAllSongsFromFriendsPlaylists = this.getAllSongsFromFriendsPlaylists.bind(this);
     this.combinePlaylists = this.combinePlaylists.bind(this);
+    this.getCommonSongs = this.getCommonSongs.bind(this);
+    this.dotheThing = this.doTheThing.bind(this);
     //this.testPlaylist = this.testPlaylist.bind(this);
     //this.tick = this.tick.bind(this);
   }
@@ -45,11 +50,10 @@ class App extends Component {
       this.setState({
         token: _token
       });
-      //this.getUsersSongs(_token, "mic_hell_e");
-      this.getAllSongs(_token);
+      
+      //this.getCommonSongs("mic_hell_e", _token);
       //this.combinePlaylists(_token);
       console.log("mounted");
-      //this.testPlaylist(_token);
     }
 
     // set interval for polling every 5 seconds
@@ -63,99 +67,30 @@ class App extends Component {
 
   tick() {
     if(this.state.token) {
-      //this.getAllPlaylists(this.state.token);
-      //this.getCurrentlyPlaying(this.state.token);
       this.combinePlaylists();
     }
   }
-  
-    
-    
-  getUsersSongs(token, userid) {
-    $.ajax({
-      url: "https://api.spotify.com/v1/users/" + userid + "/playlists",
-      type: "GET",
-      beforeSend: xhr => {
-        xhr.setRequestHeader("Authorization", "Bearer " + token);
-      },
-      success: data => {
-        // Checks if the data is not empty
-        if(!data) {
-          this.setState({
-            no_data: true,
-          });
-          return;
-        }
-        var playlists = [];
-        
-        for (var i = 0; i < data.items.length; i++) {
-          playlists.push(data.items[i].id);
-        }
 
-        this.setState({
-          user2playlists: playlists,
-          user2songs:new Set(),
-          no_data: false /* We need to "reset" the boolean, in case the
-                            user does not give F5 and has opened his Spotify. */
-                        
-        });
-        this.getAllSongsFromUsersPlaylists(token);
-        
-      }
-    });
+  doTheThing(){
+    console.log(this.state.token);
+    this.getCommonSongs("mtngdaner", this.state.token);
+    //this.getCommonSongs("mic_hell_e", this.state.token);
   }
 
-  getAllSongsFromUsersPlaylists(token) {
+  getCommonSongs(friend, token) {
 
-    for (let i = 0; i < this.state.user2playlists.length; i++) {
-      //console.log(id);
-         $.ajax({
-           url: "https://api.spotify.com/v1/playlists/"+this.state.user2playlists[i]+"/tracks",
-           async: true,
-           type: "GET",
-           beforeSend: xhr => {
-             xhr.setRequestHeader("Authorization", "Bearer " + token);
-           },
-           error: error => {
-             console.log(error);
-           },
-           success: data => {
-             // Checks if the data is not empty
-             if(!data) {
-               this.setState({
-                 no_data: true,
-               });
-               return;
-             }
-             var songs = this.state.user2songs;
-             for (var i = 0; i < data.items.length; i++) {
-               songs.add(data.items[i].track.name);
-             }
-            
-     
-           }
-         });
-       }
-       console.log("here");
-       console.log("user2", this.state);
-       this.combinePlaylists();
-       //console.log("user2", this.state);
-       //var intersection = this.state.songs.filter(x => this.state.user2songs.has(x));
-       //console.log(this.state.songs);
-       //console.log(this.state.user2songs);
-       //console.log("heyyyy", this.state);
-    /*this.setState({
-      intersection: intersection
-    })*/
-
-     }
+    this.getmysongs(token);
+    this.setState({friend: friend}, () => {
+      this.getFriendsSongs(token, friend);
+    })
+    
+  }
   
-  
-
-
-
-  getAllSongs(token) {
+  getmysongs(token) {
     // Make a call using the token
+    console.log(token);
+    console.log(this.state.friend);
+
     $.ajax({
       url: "https://api.spotify.com/v1/me/playlists",
       type: "GET",
@@ -177,19 +112,18 @@ class App extends Component {
 
         this.setState({
           playlists: playlists,
-          songs:new Set(),
           no_data: false /* We need to "reset" the boolean, in case the
                             user does not give F5 and has opened his Spotify. */
                         
         });
 
-        this.getAllSongsFromPlaylists(token);
+        this.getMySongsFromPlaylists(token);
       }
     });
   
   }
 
-  getAllSongsFromPlaylists(token) {
+  getMySongsFromPlaylists(token) {
     for (let i = 0; i < this.state.playlists.length; i++) {
    //console.log(id);
       $.ajax({
@@ -210,7 +144,7 @@ class App extends Component {
             });
             return;
           }
-          var songs = this.state.songs;
+          var songs = this.state.mysongs;
           for (var i = 0; i < data.items.length; i++) {
             songs.add(data.items[i].track.name);
           }
@@ -219,10 +153,76 @@ class App extends Component {
         }
       });
     }
-    this.getUsersSongs(token, "mic_hell_e");
-
 
   }
+    
+  getFriendsSongs(token, userid) {
+    $.ajax({
+      url: "https://api.spotify.com/v1/users/" + userid + "/playlists",
+      type: "GET",
+      beforeSend: xhr => {
+        xhr.setRequestHeader("Authorization", "Bearer " + token);
+      },
+      success: data => {
+        // Checks if the data is not empty
+        if(!data) {
+          this.setState({
+            no_data: true,
+          });
+          return;
+        }
+        var playlists = [];
+        
+        for (var i = 0; i < data.items.length; i++) {
+          playlists.push(data.items[i].id);
+        }
+
+        this.setState({
+          friendsplaylists: playlists,
+          no_data: false /* We need to "reset" the boolean, in case the
+                            user does not give F5 and has opened his Spotify. */
+                        
+        });
+        this.getAllSongsFromFriendsPlaylists(token);
+        
+      }
+    });
+  }
+
+  getAllSongsFromFriendsPlaylists(token) {
+
+    for (let i = 0; i < this.state.friendsplaylists.length; i++) {
+      //console.log(id);
+         $.ajax({
+           url: "https://api.spotify.com/v1/playlists/"+this.state.friendsplaylists[i]+"/tracks",
+           async: true,
+           type: "GET",
+           beforeSend: xhr => {
+             xhr.setRequestHeader("Authorization", "Bearer " + token);
+           },
+           error: error => {
+             console.log(error);
+           },
+           success: data => {
+             // Checks if the data is not empty
+             if(!data) {
+               this.setState({
+                 no_data: true,
+               });
+               return;
+             }
+             var songs = this.state.friendssongs;
+             for (var i = 0; i < data.items.length; i++) {
+               songs.add(data.items[i].track.name);
+             }
+            
+     
+           }
+         });
+       }
+
+       this.combinePlaylists();
+     }
 
 
   getCurrentlyPlaying(token) {
@@ -261,9 +261,9 @@ class App extends Component {
     this.setState({poop: "poop"});
     var intersection = new Set();
     var i = 0;
-    for (var x of this.state.user2songs) {
+    for (var x of this.state.friendssongs) {
       i++;
-      if (this.state.songs.has(x)) {
+      if (this.state.mysongs.has(x)) {
         intersection.add(x);
       }
     }
@@ -276,16 +276,7 @@ class App extends Component {
       {intersection: songs + intersection.size}
     )
 
-    //var intersection = this.state.songs.filter(x => this.state.user2songs.has(x));
-    //(x => this.state.allsongs[1].has(x));
-
   }
-
-
-
-
-
-
 
   render() {
     return (
@@ -306,6 +297,7 @@ class App extends Component {
          
           
           <div>{this.state.intersection}</div>
+
           
           {this.state.token && !this.state.no_data && (
             <Player
@@ -319,6 +311,13 @@ class App extends Component {
               You need to be playing a song on Spotify, for something to appear here.
             </p>
           )}
+
+          {this.state.token != null && 
+            <button onClick={() => this.doTheThing()}>
+              doTheThing
+            </button>
+          
+          }
         </header>
       </div>
     );
