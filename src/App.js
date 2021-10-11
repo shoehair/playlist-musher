@@ -73,7 +73,7 @@ class App extends Component {
 
   doTheThing(){
     console.log(this.state.token);
-    this.getCommonSongs("mtngdaner", this.state.token);
+    this.getCommonSongs("oliver_yu11", this.state.token);
     //this.getCommonSongs("mic_hell_e", this.state.token);
   }
 
