@@ -3,6 +3,8 @@ import * as $ from "jquery";
 import { authEndpoint, clientId, redirectUri, scopes } from "./config";
 import hash from "./hash";
 import Player from "./Player";
+import Song from "./Song";
+import NameForm from "./NameForm"
 import logo from "./logo.svg";
 import "./App.css";
 
@@ -24,7 +26,9 @@ class App extends Component {
       no_data: false,
       friendssongs: new Set(),
       mysongs: new Set(),
-      friend: ""
+      friend: "",
+      intersection: new Set(),
+      songsChosen: new Set()
     };
 
     //this.getCurrentlyPlaying = this.getCurrentlyPlaying.bind(this);
@@ -35,8 +39,11 @@ class App extends Component {
     this.combinePlaylists = this.combinePlaylists.bind(this);
     this.getCommonSongs = this.getCommonSongs.bind(this);
     this.dotheThing = this.doTheThing.bind(this);
+    this.handleNameFormChange = this.handleNameFormChange.bind(this);
+    this.updateSongsAdded = this.updateSongsAdded.bind(this);
+    this.createPlaylist = this.createPlaylist.bind(this);
     //this.testPlaylist = this.testPlaylist.bind(this);
-    //this.tick = this.tick.bind(this);
+    this.tick = this.tick.bind(this);
   }
 
 
@@ -54,6 +61,7 @@ class App extends Component {
       //this.getCommonSongs("mic_hell_e", _token);
       //this.combinePlaylists(_token);
       console.log("mounted");
+      this.combinePlaylists();
     }
 
     // set interval for polling every 5 seconds
@@ -71,9 +79,24 @@ class App extends Component {
     }
   }
 
+  handleNameFormChange(name) {
+    this.setState({friend: name})
+  }
+
+  doTwoThings() {
+    this.setState({intersection: new Set()});
+    this.setState({friendssongs: new Set()});
+    this.doTheThing();
+    this.doTheThing();
+  }
+
   doTheThing(){
     console.log(this.state.token);
-    this.getCommonSongs("oliver_yu11", this.state.token);
+    console.log(this.state.friend);
+    if (this.state.friend != "") {
+      this.getmyinfo(this.state.token);
+      this.getCommonSongs(this.state.friend, this.state.token);
+    }
     //this.getCommonSongs("mic_hell_e", this.state.token);
   }
 
@@ -84,6 +107,28 @@ class App extends Component {
       this.getFriendsSongs(token, friend);
     })
     
+  }
+
+  getmyinfo(token) {
+    $.ajax({
+      url: "https://api.spotify.com/v1/me",
+      type: "GET",
+      beforeSend: xhr => {
+        xhr.setRequestHeader("Authorization", "Bearer " + token);
+      },
+      success: data => {
+        // Checks if the data is not empty
+        if(!data) {
+          this.setState({
+            no_data: true,
+          });
+          return;
+        }
+        this.setState({
+          myInfo: data                      
+        });
+      }
+    });
   }
   
   getmysongs(token) {
@@ -146,11 +191,12 @@ class App extends Component {
           }
           var songs = this.state.mysongs;
           for (var i = 0; i < data.items.length; i++) {
-            songs.add(data.items[i].track.name);
+            songs.add(JSON.stringify(data.items[i].track));
           }
         
   
         }
+
       });
     }
 
@@ -184,8 +230,15 @@ class App extends Component {
                         
         });
         this.getAllSongsFromFriendsPlaylists(token);
-        
-      }
+      },
+      error: function(xhr, status, error){
+         var errorMessage = xhr.status + ': ' + xhr.statusText
+         if (xhr.status == 404) {
+            alert("User with user ID does not exist");
+            //I bound this but for some reason it's getting overwritten??
+            this.setState({friend: ""});
+         }
+      }.bind(this)
     });
   }
 
@@ -213,7 +266,7 @@ class App extends Component {
              }
              var songs = this.state.friendssongs;
              for (var i = 0; i < data.items.length; i++) {
-               songs.add(data.items[i].track.name);
+               songs.add(JSON.stringify(data.items[i].track));
              }
             
      
@@ -260,23 +313,94 @@ class App extends Component {
   combinePlaylists() {
     this.setState({poop: "poop"});
     var intersection = new Set();
+
     var i = 0;
     for (var x of this.state.friendssongs) {
       i++;
       if (this.state.mysongs.has(x)) {
-        intersection.add(x);
+        var json = eval('('+ x +')' );;
+        intersection.add(json);
       }
     }
+
+    console.log([...intersection][0]);
+
 
     var songs = "";
     for (var song of intersection) {
       songs += song + " , ";
     }
     this.setState(
-      {intersection: songs + intersection.size}
+      {intersection: intersection}
     )
-
   }
+
+  updateSongsAdded(songs_added) {
+    console.log("current songs chosen");
+    console.log(songs_added);
+    this.setState({songsChosen: songs_added});
+  }
+
+  createPlaylist(token){
+    console.log("creating playlist...");
+    console.log(this.state.songsChosen);
+
+    var user_id = this.state.myInfo.id;
+    var user_name = this.state.myInfo.display_name;
+    $.ajax({
+      url: "https://api.spotify.com/v1/users/" + user_id + "/playlists",
+      type: "POST",
+      data: JSON.stringify({
+        "name": user_name + "'s and " + this.state.friend +"'s combined playlist",
+        "description": "You made this playlist using SpotifyMusher!",
+        "public": true
+      }),
+      beforeSend: xhr => {
+        xhr.setRequestHeader("Authorization", "Bearer " + token);
+      },
+      error: function(xhr, error){
+        console.log("error");
+        console.log(xhr);
+        console.log(error);
+      },
+      success: data => {
+        this.setState({
+          playlist: data             
+        });
+        //add all songs to the playlist
+        var songsToAdd = [];
+        for(let object of this.state.songsChosen) {
+          songsToAdd.push(object.uri);
+        }
+          $.ajax({
+            url: "https://api.spotify.com/v1/playlists/" + this.state.playlist.id + "/tracks",
+            async: true,
+            type: "POST",
+            data: JSON.stringify({
+              "uris": songsToAdd,
+            }),
+            beforeSend: xhr => {
+              xhr.setRequestHeader("Authorization", "Bearer " + token);
+            },
+            error: error => {
+              console.log(error);
+            },
+            success: data => {
+              // Checks if the data is not empty
+              if(!data) {
+                this.setState({
+                  no_data: true,
+                });
+                return;
+              }
+
+            }
+          });
+      }
+    });
+  }
+
+//<div>{this.state.intersection}</div>
 
   render() {
     return (
@@ -294,9 +418,9 @@ class App extends Component {
             </a>
           )}
 
-         
+         {this.state.no_data == false &&  <div> The intersection of your and {this.state.friend}'s songs </div>}
           
-          <div>{this.state.intersection}</div>
+          
 
           
           {this.state.token && !this.state.no_data && (
@@ -304,6 +428,9 @@ class App extends Component {
               item={this.state.item}
               is_playing={this.state.is_playing}
               progress_ms={this.state.progress_ms}
+              songs={[...this.state.intersection]}
+              foundASong={this.state.intersection.size > 0}
+              func={this.updateSongsAdded}
             />
           )}
           {this.state.no_data && (
@@ -312,9 +439,23 @@ class App extends Component {
             </p>
           )}
 
+          {this.state.token && !this.state.no_data && (
+            <NameForm
+            onValueChange={this.handleNameFormChange}
+            onSubmit={() => this.doTwoThings()}
+            />
+          )}
+
           {this.state.token != null && 
-            <button onClick={() => this.doTheThing()}>
+            <button onClick={() => this.doTwoThings()}>
               doTheThing
+            </button>
+          
+          }
+
+          {this.state.token != null && 
+            <button onClick={() => this.createPlaylist(this.state.token)}>
+              create playlist
             </button>
           
           }

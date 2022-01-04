@@ -1,39 +1,43 @@
-import React from "react";
+import React, {Component}from "react";
 import "./Player.css";
+import Song from "./Song";
 
-const Player = props => {
-  const backgroundStyles = {
-    backgroundImage:`url(${
-      props.item.album.images[0].url
-    })`,
-  };
+class Player extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      songs_added: new Set()
+    };
+    this.onChildClicked = this.onChildClicked.bind(this);
+  }
 
-  const progressBarStyles = {
-    width: (props.progress_ms * 100 / props.item.duration_ms) + '%'
-  };
+  onChildClicked(songName) {
+    if (this.state.songs_added.has(songName)) {
+      this.state.songs_added.delete(songName);
+      this.setState({songs_added: this.state.songs_added});
+    }
+    else {
+      this.state.songs_added.add(songName);
+      this.setState({songs_added: this.state.songs_added});
+    }
+    this.props.func(this.state.songs_added);
+  }
 
-  return (
-    <div className="App">
-      <div className="main-wrapper">
-        <div className="now-playing__img">
-          <img src={props.item.album.images[0].url} />
+
+  //{props.songs.map((object, i) => <Song name={object[0].name} key={i} />)}
+  //{props.foundASong && <div className="song_container">{props.songs.map((object, i) => <Song object={object} key={i} />)}</div>}
+
+  render() {
+    return (
+      <div className="App">
+        <div className="main-wrapper">
+          
+        {this.props.foundASong && <div className="song_container">{this.props.songs.map((object, i) => <Song object={object} key={i} func={this.onChildClicked}/>)}</div>}
+          
         </div>
-        <div className="now-playing__side">
-          <div className="now-playing__name">{props.item.name}</div>
-          <div className="now-playing__artist">
-            {props.item.artists[0].name}
-          </div>
-          <div className="now-playing__status">
-            {props.is_playing ? "Playing" : "Paused"}
-          </div>
-          <div className="progress">
-            <div className="progress__bar" style={progressBarStyles} />
-          </div>
-        </div>
-        <div className="background" style={backgroundStyles} />{" "}
       </div>
-    </div>
-  );
+    );
+  }
 }
 
 export default Player;
