@@ -64,10 +64,6 @@ class App extends Component {
       this.combinePlaylists();
     }
 
-    this.getAllMySongs(this.state.token);
-
-    // set interval for polling every 5 seconds
-    this.interval = setInterval(() => this.tick(), 5000);
   }
 
   componentWillUnmount() {
