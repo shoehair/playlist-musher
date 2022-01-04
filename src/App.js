@@ -1,7 +1,6 @@
 import React, { Component } from "react";
 import * as $ from "jquery";
 import { authEndpoint, clientId, redirectUri, scopes } from "./config.js";
-import bla from "./bla"
 import hash from "./hash";
 import Player from "./Player";
 import Song from "./Song";
