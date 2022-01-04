@@ -2,7 +2,7 @@
   "name": "react-instafeed",
   "description": "Realtime Spotify Player built with React.",
   "version": "0.1.0",
-  "author": "Joe Karlsson<joekarlsson1@gmail.com>",
+  "author": "Joe Karlsson <joekarlsson1@gmail.com>",
   "license": "MIT",
   "private": true,
   "dependencies": {
@@ -25,5 +25,11 @@
     "not dead",
     "not ie <= 11",
     "not op_mini all"
-  ]
+  ],
+  "main": "index.js",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "playlist-musher"
+  }
 }

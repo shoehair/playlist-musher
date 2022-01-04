@@ -6,17 +6,12 @@ export const redirectUri = "http://localhost:3000/redirect";
 export const scopes = [
     "user-top-read",
     "user-read-currently-playing",
-    "user-read-private",
     "user-read-playback-state",
-<<<<<<< HEAD
     "user-read-private",
     "playlist-read-private",
-=======
     "user-library-modify",
     "playlist-modify-private",
     "playlist-read-collaborative",
     "playlist-read-private",
     "playlist-modify-public"
-
->>>>>>> old-working-state
 ];
