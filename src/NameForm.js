@@ -6,17 +6,11 @@ class NameForm extends React.Component {
     this.state = {value: ''};
 
     this.handleChange = this.handleChange.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
   }
 
   handleChange(event) {
     this.setState({value: event.target.value});
     this.props.onValueChange(event.target.value);
-  }
-
-  handleSubmit(event) {
-    alert('A username was submitted: ' + this.state.value);
-    event.preventDefault();
   }
 
   render() {
@@ -26,7 +20,6 @@ class NameForm extends React.Component {
           Friend's username:
           <input type="text" value={this.state.value} onChange={this.handleChange} />
         </label>
-        <input type="submit" value="Submit" />
       </form>
     );
   }

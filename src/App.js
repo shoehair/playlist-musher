@@ -3,6 +3,7 @@ import * as $ from "jquery";
 import { authEndpoint, clientId, redirectUri, scopes } from "./config.js";
 import hash from "./hash";
 import Player from "./Player";
+import ProgressBar from "./ProgressBar"
 import Song from "./Song";
 import NameForm from "./NameForm"
 import logo from "./logo.svg";
@@ -21,14 +22,19 @@ class App extends Component {
         artists: [{ name: "" }],
         duration_ms: 0
       },
+      
       is_playing: "Paused",
       progress_ms: 0,
       no_data: false,
       friendssongs: new Set(),
       mysongs: new Set(),
+      myprogress: 0,
+      friendprogress:0,
       friend: "",
       intersection: new Set(),
-      songsChosen: new Set()
+      songsChosen: new Set(),
+      playlists: [],
+      friendsplaylists: []
     };
 
     //this.getCurrentlyPlaying = this.getCurrentlyPlaying.bind(this);
@@ -77,6 +83,7 @@ class App extends Component {
     if(this.state.token) {
       this.combinePlaylists();
     }
+    console.log(this.state.myprogress + this.state.friendprogress + "  " + this.state.playlists.length + this.state.friendsplaylists.length);
   }
 
   handleNameFormChange(name) {
@@ -84,15 +91,21 @@ class App extends Component {
   }
 
   doTwoThings() {
-    this.setState({intersection: new Set()});
+    /*this.setState({intersection: new Set()});
     this.setState({friendssongs: new Set()});
     this.doTheThing();
+    this.doTheThing();*/
     this.doTheThing();
   }
 
   doTheThing(){
     console.log(this.state.token);
     console.log(this.state.friend);
+    this.setState({friendssongs: new Set(),
+                  myprogress: 0,
+                  friendprogress:0,
+                  playlists:[],
+                  friendsplaylists: []})
     if (this.state.friend != "") {
       this.getmyinfo(this.state.token);
       this.getCommonSongs(this.state.friend, this.state.token);
@@ -133,8 +146,7 @@ class App extends Component {
   
   getmysongs(token) {
     // Make a call using the token
-    console.log(token);
-    console.log(this.state.friend);
+    console.log("getMySongs");
 
     $.ajax({
       url: "https://api.spotify.com/v1/me/playlists",
@@ -169,6 +181,7 @@ class App extends Component {
   }
 
   getMySongsFromPlaylists(token) {
+    console.log("getMySongsFromPlaylists");
     for (let i = 0; i < this.state.playlists.length; i++) {
    //console.log(id);
       $.ajax({
@@ -193,6 +206,8 @@ class App extends Component {
           for (var i = 0; i < data.items.length; i++) {
             songs.add(JSON.stringify(data.items[i].track));
           }
+          this.setState({myprogress: this.state.myprogress + 1});
+          console.log(i);
         
   
         }
@@ -203,6 +218,7 @@ class App extends Component {
   }
     
   getFriendsSongs(token, userid) {
+    console.log("getfriendssongs");
     $.ajax({
       url: "https://api.spotify.com/v1/users/" + userid + "/playlists",
       type: "GET",
@@ -243,7 +259,7 @@ class App extends Component {
   }
 
   getAllSongsFromFriendsPlaylists(token) {
-
+    console.log("getAllSongsFromFriendsPlaylists");
     for (let i = 0; i < this.state.friendsplaylists.length; i++) {
       //console.log(id);
          $.ajax({
@@ -272,6 +288,7 @@ class App extends Component {
      
            }
          });
+         this.setState({friendprogress: this.state.friendprogress + 1});
        }
 
        this.combinePlaylists();
@@ -279,7 +296,7 @@ class App extends Component {
 
 
   getCurrentlyPlaying(token) {
-    //console.log("bla");
+    //console.log("get cu");
     // Make a call using the token
     $.ajax({
       url: "https://api.spotify.com/v1/me/player",
@@ -322,6 +339,9 @@ class App extends Component {
         intersection.add(json);
       }
     }
+
+    console.log(this.state.friendssongs);
+    console.log(this.state.mysongs);
 
     console.log([...intersection][0]);
 
@@ -406,7 +426,15 @@ class App extends Component {
     return (
       <div className="App">
         <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
+        <div class="content">
+          <h2 class="text_shadows">SPOTIFY MUSHER</h2>
+        </div>
+          {/* <img src={logo} className="App-logo" alt="logo" /> */}
+          
+          <div className="text-container">
+            <div> The intersection of your and </div> <div className="underlined">{this.state.friend == "" ? " __________" : this.state.friend}</div><div>'s songs </div>
+          </div>
+
           {!this.state.token && (
             <a
               className="btn btn--loginApp-link"
@@ -418,7 +446,7 @@ class App extends Component {
             </a>
           )}
 
-         {this.state.no_data == false &&  <div> The intersection of your and {this.state.friend}'s songs </div>}
+          
           
           
 
@@ -431,13 +459,13 @@ class App extends Component {
               songs={[...this.state.intersection]}
               foundASong={this.state.intersection.size > 0}
               func={this.updateSongsAdded}
+              totalmyplaylists={this.state.playlists.length}
+              totalfriendplaylists={this.state.friendsplaylists.length}
+              myplaylistsdone={this.state.myprogress}
+              friendplaylistsdone={this.state.friendprogress}
             />
           )}
-          {this.state.no_data && (
-            <p>
-              You need to be playing a song on Spotify, for something to appear here.
-            </p>
-          )}
+
 
           {this.state.token && !this.state.no_data && (
             <NameForm
@@ -447,18 +475,29 @@ class App extends Component {
           )}
 
           {this.state.token != null && 
-            <button onClick={() => this.doTwoThings()}>
+            <button className="cute-button" onClick={() => this.doTwoThings()}>
               doTheThing
             </button>
           
           }
 
           {this.state.token != null && 
-            <button onClick={() => this.createPlaylist(this.state.token)}>
+          this.state.friendsplaylists.length != 0 &&
+          this.state.myprogress + this.state.friendprogress == this.state.playlists.length+ this.state.friendsplaylists.length &&
+          this.state.intersection.size != 0 &&
+            <button className="cute-button big-margin" onClick={() => this.createPlaylist(this.state.token)}>
               create playlist
             </button>
-          
           }
+
+          {this.state.token && !this.state.no_data && (
+            <ProgressBar
+              totalmyplaylists={this.state.playlists.length}
+              totalfriendplaylists={this.state.friendsplaylists.length}
+              myplaylistsdone={this.state.myprogress}
+              friendplaylistsdone={this.state.friendprogress}
+            />
+          )}
         </header>
       </div>
     );

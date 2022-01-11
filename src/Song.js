@@ -28,7 +28,7 @@ class Song extends Component {
   
 
   render(){
-    let btn_class = this.state.clicked ? "clicked" : "unclicked";
+    let btn_class = this.state.clicked ? "song-button clicked" : "song-button unclicked";
     return(
     <div>
         <div className={btn_class} onMouseOver={this.changeBackground} onClick={this.handleClick}> 

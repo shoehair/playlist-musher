@@ -6,10 +6,14 @@ class Player extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      songs_added: new Set()
+      songs_added: new Set(),
     };
+
     this.onChildClicked = this.onChildClicked.bind(this);
+
   }
+
+  
 
   onChildClicked(songName) {
     if (this.state.songs_added.has(songName)) {
@@ -31,6 +35,7 @@ class Player extends Component {
     return (
       <div className="App">
         <div className="main-wrapper">
+        
           
         {this.props.foundASong && <div className="song_container">{this.props.songs.map((object, i) => <Song object={object} key={i} func={this.onChildClicked}/>)}</div>}
           
