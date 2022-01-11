@@ -1,0 +1,24 @@
+
+.progress {
+
+    border: 1px solid #eee;
+    height: 16px;
+    width: 70vw;
+    border-radius: 10px;
+    margin-left: 15vw;
+}
+
+.progress__bar {
+    background-color: #eee;
+    border-radius: 10px;
+    height: 14px;
+    bottom:10px;
+}
+
+.progress_container{
+    width: 100%;
+    position: absolute;
+    left: 0;
+    bottom: 5px;
+    font-size: 2.5vmin;
+}
